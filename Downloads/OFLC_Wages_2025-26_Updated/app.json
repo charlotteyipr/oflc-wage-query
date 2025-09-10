@@ -1,0 +1,25 @@
+{
+  "name": "OFLC Wage Query System",
+  "description": "A web application for querying OFLC wage data across different positions, states, and levels",
+  "repository": "https://github.com/yourusername/oflc-wage-query",
+  "keywords": ["flask", "python", "wage", "query", "oflc"],
+  "success_url": "/",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "addons": [],
+  "env": {
+    "FLASK_ENV": {
+      "description": "Flask environment",
+      "value": "production"
+    }
+  }
+}

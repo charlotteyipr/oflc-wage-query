@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OFLC 薪资查询系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .hero-section {
+            background: #1e3a8a;
+            color: white;
+            padding: 60px 0;
+        }
+        .search-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            height: 100%;
+        }
+        .tab-navigation {
+            display: flex;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .tab-button {
+            flex: 1;
+            padding: 15px 20px;
+            background: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-right: 1px solid #e9ecef;
+        }
+        .tab-button:last-child {
+            border-right: none;
+        }
+        .tab-button.active {
+            background: #1e3a8a;
+            color: white;
+        }
+        .tab-button:hover:not(.active) {
+            background-color: #f8f9fa;
+        }
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .search-button {
+            background: #1e3a8a;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .search-card .card-header {
+            background: #1e3a8a;
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            border: none;
+        }
+        .btn-search {
+            background: #1e3a8a;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 30px;
+        }
+        .result-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        .salary-level {
+            background: #1e3a8a;
+            color: white;
+            border-radius: 20px;
+            padding: 5px 15px;
+            margin: 2px;
+            display: inline-block;
+        }
+        .loading {
+            display: none;
+        }
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .autocomplete-container {
+            position: relative;
+        }
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .autocomplete-item:hover {
+            background-color: #f8f9fa;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-chart-line me-2"></i>OFLC Wage Query System
+            </a>
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-globe me-1"></i>Language
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" onclick="switchLanguage('en')"><i class="fas fa-flag-usa me-2"></i>English</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="switchLanguage('zh')"><i class="fas fa-flag me-2"></i>中文</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 英雄区域 -->
+    <div class="hero-section">
+        <div class="container text-center">
+            <h1 class="display-4 mb-4" id="main-title">OFLC Wage Query System</h1>
+        </div>
+    </div>
+
+    <!-- 主要内容 -->
+    <div class="container my-5">
+        <!-- 标签页导航 -->
+        <div class="tab-navigation">
+            <button class="tab-button" id="tab-job-title" onclick="switchTab('job-title')">
+                → Search by Job Title
+            </button>
+            <button class="tab-button active" id="tab-salary" onclick="switchTab('salary')">
+                ← Search by Salary
+            </button>
+            <button class="tab-button" id="tab-location" onclick="switchTab('location')">
+                ↔ Search by Location
+            </button>
+        </div>
+
+        <!-- 根据职位名称查询 -->
+        <div id="job-title-tab" class="tab-content">
+            <h2 class="mb-4" id="job-title-heading">→ Search by Job Title</h2>
+            <form id="forwardSearchForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="forwardPosition" class="form-label" id="label-forward-position">Job Title</label>
+                        <div class="autocomplete-container">
+                            <input type="text" class="form-control" id="forwardPosition" 
+                                   placeholder="">
+                            <div class="autocomplete-dropdown" id="forwardPositionDropdown"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="forwardLocation" class="form-label" id="label-forward-location">State</label>
+                        <div class="autocomplete-container">
+                            <input type="text" class="form-control" id="forwardLocation" 
+                                   placeholder="">
+                            <div class="autocomplete-dropdown" id="forwardLocationDropdown"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="forwardCounty" class="form-label" id="label-forward-county">County (optional)</label>
+                        <div class="autocomplete-container">
+                            <input type="text" class="form-control" id="forwardCounty" 
+                                   placeholder="">
+                            <div class="autocomplete-dropdown" id="forwardCountyDropdown"></div>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="search-button" id="btn-forward-search">
+                    <i class="fas fa-search"></i> Search Jobs
+                </button>
+            </form>
+            <div id="forwardLoading" class="loading text-center mt-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">${t('searching')}</span>
+                </div>
+            </div>
+            <div id="forwardResults"></div>
+        </div>
+
+        <!-- 根据薪资查询 -->
+        <div id="salary-tab" class="tab-content active">
+            <h2 class="mb-4" id="salary-heading">← Search by Salary</h2>
+            <form id="reverseSearchForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="minSalary" class="form-label" id="label-min-salary">Minimum Annual Salary (USD)</label>
+                        <input type="number" class="form-control" id="minSalary" 
+                               placeholder="" step="1000">
+                    </div>
+                    <div class="form-group">
+                        <label for="maxSalary" class="form-label" id="label-max-salary">Maximum Annual Salary (USD, optional)</label>
+                        <input type="number" class="form-control" id="maxSalary" 
+                               placeholder="" step="1000">
+                    </div>
+                    <div class="form-group">
+                        <label for="reverseLocation" class="form-label" id="label-reverse-location">State</label>
+                        <div class="autocomplete-container">
+                            <input type="text" class="form-control" id="reverseLocation" 
+                                   placeholder="">
+                            <div class="autocomplete-dropdown" id="reverseLocationDropdown"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="reverseCounty" class="form-label" id="label-reverse-county">County (optional)</label>
+                        <div class="autocomplete-container">
+                            <input type="text" class="form-control" id="reverseCounty" 
+                                   placeholder="">
+                            <div class="autocomplete-dropdown" id="reverseCountyDropdown"></div>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="search-button" id="btn-reverse-search">
+                    <i class="fas fa-search"></i> Search Jobs
+                </button>
+            </form>
+            <div id="reverseLoading" class="loading text-center mt-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">${t('searching')}</span>
+                </div>
+            </div>
+            <div id="reverseResults"></div>
+        </div>
+
+        <!-- 地区查询 -->
+        <div id="location-tab" class="tab-content">
+            <h2 class="mb-4" id="location-heading">↔ Search by Location</h2>
+            <form id="locationSearchForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="locationPosition" class="form-label" id="label-location-position">Job Title</label>
+                        <div class="autocomplete-container">
+                            <input type="text" class="form-control" id="locationPosition" 
+                                   placeholder="">
+                            <div class="autocomplete-dropdown" id="locationPositionDropdown"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="targetLevel" class="form-label" id="label-target-level">Target Level</label>
+                        <select class="form-select" id="targetLevel">
+                            <option value="1">Level 1</option>
+                            <option value="2" selected>Level 2</option>
+                            <option value="3">Level 3</option>
+                            <option value="4">Level 4</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="targetSalary" class="form-label" id="label-target-salary">Target Annual Salary (USD)</label>
+                        <input type="number" class="form-control" id="targetSalary" 
+                               placeholder="" step="1000">
+                    </div>
+                    <div class="form-group">
+                        <label for="locationState" class="form-label" id="label-location-state">State (optional)</label>
+                        <div class="autocomplete-container">
+                            <input type="text" class="form-control" id="locationState" 
+                                   placeholder="">
+                            <div class="autocomplete-dropdown" id="locationStateDropdown"></div>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="search-button" id="btn-location-search">
+                    <i class="fas fa-search"></i> Search Locations
+                </button>
+            </form>
+            <div id="locationLoading" class="loading text-center mt-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">${t('searching')}</span>
+                </div>
+            </div>
+            <div id="locationResults"></div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-0" id="footer-text">&copy; 2025 OFLC Wage Query System. Data Source: OFLC Wages 2025-26</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 语言切换功能
+        let currentLanguage = 'en';
+        
+        const translations = {
+            en: {
+                'main-title': 'OFLC Wage Query System',
+                'footer-text': '© 2025 OFLC Wage Query System. Data Source: OFLC Wages 2025-26',
+                'tab-job-title': '→ Search by Job Title',
+                'tab-salary': '← Search by Salary',
+                'tab-location': '↔ Search by Location',
+                'label-job-title': 'Job Title',
+                'label-state': 'State',
+                'label-county': 'County (optional)',
+                'label-min-salary': 'Minimum Annual Salary (USD)',
+                'label-max-salary': 'Maximum Annual Salary (USD, optional)',
+                'label-target-level': 'Target Level',
+                'label-target-salary': 'Target Annual Salary (USD)',
+                'label-state-optional': 'State (optional)',
+                'btn-search-jobs': 'Search Jobs',
+                'btn-search-locations': 'Search Locations',
+                'placeholder-job-title': 'e.g., Software Engineer, Marketing Manager',
+                'placeholder-state': 'e.g., California',
+                'placeholder-county': 'e.g., Orange County',
+                'placeholder-min-salary': 'e.g., 70000',
+                'placeholder-max-salary': 'e.g., 80000',
+                'placeholder-target-salary': 'e.g., 80000',
+                'found-results': 'Found {count} results',
+                'job-code': 'Job Code',
+                'location': 'Location',
+                'county': 'County',
+                'level-annual-salary': 'Level {level} Annual Salary',
+                'matching-levels': 'Matching Levels',
+                'found-locations': 'Found {count} locations that meet the criteria',
+                'no-results': 'No matching results found',
+                'search-failed': 'Search failed, please try again later',
+                'please-enter': 'Please enter job title and location',
+                'please-enter-salary': 'Please enter salary range and location',
+                'please-enter-location': 'Please enter job title, target level, and target salary',
+                'searching': 'Searching...',
+                'error-no-occupations': 'No matching occupations found',
+                'error-no-wage-data': 'No matching wage data found',
+                'error-no-locations': 'No matching locations found',
+                'error-no-salary-data': 'No matching salary data found',
+                'error-empty-fields': 'Job title and location cannot be empty',
+                'error-empty-salary': 'Salary range and location cannot be empty',
+                'error-empty-location': 'Job title, target level and target salary cannot be empty'
+            },
+            zh: {
+                'main-title': 'OFLC 薪资查询系统',
+                'footer-text': '© 2025 OFLC 薪资查询系统. 数据来源：OFLC Wages 2025-26',
+                'tab-job-title': '→ 根据职位名称查询',
+                'tab-salary': '← 根据薪资查询',
+                'tab-location': '↔ 地区查询',
+                'label-job-title': '职位名称',
+                'label-state': '州/地区',
+                'label-county': '县/镇 (可选)',
+                'label-min-salary': '最低年薪 (美元)',
+                'label-max-salary': '最高年薪 (美元, 可选)',
+                'label-target-level': '目标级别',
+                'label-target-salary': '目标年薪 (美元)',
+                'label-state-optional': '州/地区 (可选)',
+                'btn-search-jobs': '查询职位',
+                'btn-search-locations': '查询地区',
+                'placeholder-job-title': '例如：Software Engineer, Marketing Manager',
+                'placeholder-state': '例如：California',
+                'placeholder-county': '例如：Orange County',
+                'placeholder-min-salary': '例如：70000',
+                'placeholder-max-salary': '例如：80000',
+                'placeholder-target-salary': '例如：80000',
+                'found-results': '找到 {count} 条结果',
+                'job-code': '职业代码',
+                'location': '地区',
+                'county': '县/镇',
+                'level-annual-salary': 'Level {level} 年薪',
+                'matching-levels': '符合薪资范围的Level',
+                'found-locations': '找到 {count} 个符合条件的地区',
+                'no-results': '未找到匹配的结果',
+                'search-failed': '查询失败，请稍后重试',
+                'please-enter': '请输入职位名称和地区',
+                'please-enter-salary': '请输入薪资范围和地区',
+                'please-enter-location': '请输入职位名称、目标级别和目标薪资',
+                'searching': '查询中...',
+                'error-no-occupations': '未找到匹配的职业',
+                'error-no-wage-data': '未找到匹配的薪资数据',
+                'error-no-locations': '未找到匹配的地区',
+                'error-no-salary-data': '未找到符合条件的薪资数据',
+                'error-empty-fields': '职位名称和地区不能为空',
+                'error-empty-salary': '薪资范围和地区不能为空',
+                'error-empty-location': '职位名称、目标级别和目标薪资不能为空'
+            }
+        };
+        
+        function switchLanguage(lang) {
+            currentLanguage = lang;
+            updateLanguage();
+        }
+        
+        function updateLanguage() {
+            const texts = translations[currentLanguage];
+            
+            // 更新主标题
+            document.getElementById('main-title').textContent = texts['main-title'];
+            
+            // 更新页脚
+            document.getElementById('footer-text').textContent = texts['footer-text'];
+            
+            // 更新标签页按钮
+            document.getElementById('tab-job-title').textContent = texts['tab-job-title'];
+            document.getElementById('tab-salary').textContent = texts['tab-salary'];
+            document.getElementById('tab-location').textContent = texts['tab-location'];
+            
+            // 更新标签页标题
+            document.getElementById('job-title-heading').textContent = texts['tab-job-title'];
+            document.getElementById('salary-heading').textContent = texts['tab-salary'];
+            document.getElementById('location-heading').textContent = texts['tab-location'];
+            
+            // 更新表单标签
+            document.getElementById('label-forward-position').textContent = texts['label-job-title'];
+            document.getElementById('label-forward-location').textContent = texts['label-state'];
+            document.getElementById('label-forward-county').textContent = texts['label-county'];
+            document.getElementById('label-min-salary').textContent = texts['label-min-salary'];
+            document.getElementById('label-max-salary').textContent = texts['label-max-salary'];
+            document.getElementById('label-reverse-location').textContent = texts['label-state'];
+            document.getElementById('label-reverse-county').textContent = texts['label-county'];
+            document.getElementById('label-location-position').textContent = texts['label-job-title'];
+            document.getElementById('label-target-level').textContent = texts['label-target-level'];
+            document.getElementById('label-target-salary').textContent = texts['label-target-salary'];
+            document.getElementById('label-location-state').textContent = texts['label-state-optional'];
+            
+            // 更新按钮文本
+            document.getElementById('btn-forward-search').innerHTML = `<i class="fas fa-search"></i> ${texts['btn-search-jobs']}`;
+            document.getElementById('btn-reverse-search').innerHTML = `<i class="fas fa-search"></i> ${texts['btn-search-jobs']}`;
+            document.getElementById('btn-location-search').innerHTML = `<i class="fas fa-search"></i> ${texts['btn-search-locations']}`;
+            
+            // 更新占位符
+            document.getElementById('forwardPosition').placeholder = texts['placeholder-job-title'];
+            document.getElementById('forwardLocation').placeholder = texts['placeholder-state'];
+            document.getElementById('forwardCounty').placeholder = texts['placeholder-county'];
+            document.getElementById('minSalary').placeholder = texts['placeholder-min-salary'];
+            document.getElementById('maxSalary').placeholder = texts['placeholder-max-salary'];
+            document.getElementById('reverseLocation').placeholder = texts['placeholder-state'];
+            document.getElementById('reverseCounty').placeholder = texts['placeholder-county'];
+            document.getElementById('locationPosition').placeholder = texts['placeholder-job-title'];
+            document.getElementById('targetSalary').placeholder = texts['placeholder-target-salary'];
+            document.getElementById('locationState').placeholder = texts['placeholder-state'];
+        }
+        
+        function t(key, params = {}) {
+            let text = translations[currentLanguage][key] || key;
+            Object.keys(params).forEach(param => {
+                text = text.replace(`{${param}}`, params[param]);
+            });
+            return text;
+        }
+        
+        function translateError(errorMessage) {
+            // 将后端返回的英文错误消息翻译为当前语言
+            const errorMap = {
+                'No matching occupations found': 'error-no-occupations',
+                'No matching wage data found': 'error-no-wage-data',
+                'No matching locations found': 'error-no-locations',
+                'No matching salary data found': 'error-no-salary-data',
+                'Job title and location cannot be empty': 'error-empty-fields',
+                'Salary range and location cannot be empty': 'error-empty-salary',
+                'Job title, target level and target salary cannot be empty': 'error-empty-location'
+            };
+            
+            const errorKey = errorMap[errorMessage];
+            if (errorKey) {
+                return t(errorKey);
+            }
+            return errorMessage; // 如果找不到对应的翻译，返回原消息
+        }
+
+        // 标签页切换功能
+        function switchTab(tabName) {
+            // 移除所有标签按钮的active类
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 隐藏所有标签内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 激活选中的标签按钮
+            event.target.classList.add('active');
+            
+            // 显示选中的标签内容
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // 清空其他标签的结果
+            if (tabName !== 'job-title') {
+                document.getElementById('forwardResults').innerHTML = '';
+            }
+            if (tabName !== 'salary') {
+                document.getElementById('reverseResults').innerHTML = '';
+            }
+            if (tabName !== 'location') {
+                document.getElementById('locationResults').innerHTML = '';
+            }
+        }
+
+        // 自动完成功能
+        function setupAutocomplete(inputId, dropdownId, apiEndpoint, displayField, valueField) {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+            let timeoutId;
+
+            input.addEventListener('input', function() {
+                clearTimeout(timeoutId);
+                const query = this.value.trim();
+                
+                if (query.length < 2) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                timeoutId = setTimeout(async () => {
+                    try {
+                        const response = await fetch(`${apiEndpoint}?q=${encodeURIComponent(query)}`);
+                        const data = await response.json();
+                        
+                        if (data[Object.keys(data)[0]].length === 0) {
+                            dropdown.style.display = 'none';
+                            return;
+                        }
+
+                        dropdown.innerHTML = '';
+                        data[Object.keys(data)[0]].forEach(item => {
+                            const div = document.createElement('div');
+                            div.className = 'autocomplete-item';
+                            div.textContent = item[displayField];
+                            div.addEventListener('click', () => {
+                                input.value = item[displayField];
+                                dropdown.style.display = 'none';
+                            });
+                            dropdown.appendChild(div);
+                        });
+                        
+                        dropdown.style.display = 'block';
+                    } catch (error) {
+                        console.error('Autocomplete error:', error);
+                        dropdown.style.display = 'none';
+                    }
+                }, 300);
+            });
+
+            // 点击外部隐藏下拉框
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        // 设置所有自动完成功能
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化语言设置
+            updateLanguage();
+            
+            // 职位搜索
+            setupAutocomplete('forwardPosition', 'forwardPositionDropdown', '/api/search/occupations', 'title', 'soc_code');
+            setupAutocomplete('locationPosition', 'locationPositionDropdown', '/api/search/occupations', 'title', 'soc_code');
+            
+            // 州搜索
+            setupAutocomplete('forwardLocation', 'forwardLocationDropdown', '/api/search/states', 'state', 'state_ab');
+            setupAutocomplete('reverseLocation', 'reverseLocationDropdown', '/api/search/states', 'state', 'state_ab');
+            setupAutocomplete('locationState', 'locationStateDropdown', '/api/search/states', 'state', 'state_ab');
+            
+            // 县搜索
+            setupAutocomplete('forwardCounty', 'forwardCountyDropdown', '/api/search/counties', 'county', 'county');
+            setupAutocomplete('reverseCounty', 'reverseCountyDropdown', '/api/search/counties', 'county', 'county');
+        });
+        // 正向查询
+        document.getElementById('forwardSearchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const position = document.getElementById('forwardPosition').value;
+            const location = document.getElementById('forwardLocation').value;
+            const county = document.getElementById('forwardCounty').value;
+            const loading = document.getElementById('forwardLoading');
+            const results = document.getElementById('forwardResults');
+            
+            if (!position || !location) {
+                showError(results, t('please-enter'));
+                return;
+            }
+            
+            loading.style.display = 'block';
+            results.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/search/forward', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        position: position,
+                        location: location,
+                        county: county
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayForwardResults(data.results, results);
+                } else {
+                    showError(results, translateError(data.error));
+                }
+            } catch (error) {
+                showError(results, t('search-failed'));
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+        
+        // 反向查询
+        document.getElementById('reverseSearchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const minSalary = parseFloat(document.getElementById('minSalary').value);
+            const maxSalary = parseFloat(document.getElementById('maxSalary').value);
+            const location = document.getElementById('reverseLocation').value;
+            const county = document.getElementById('reverseCounty').value;
+            const loading = document.getElementById('reverseLoading');
+            const results = document.getElementById('reverseResults');
+            
+            if (!minSalary || !maxSalary || !location) {
+                showError(results, t('please-enter-salary'));
+                return;
+            }
+            
+            if (minSalary >= maxSalary) {
+                showError(results, '最低薪资必须小于最高薪资');
+                return;
+            }
+            
+            loading.style.display = 'block';
+            results.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/search/reverse', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        min_salary: minSalary,
+                        max_salary: maxSalary,
+                        location: location,
+                        county: county
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayReverseResults(data.results, results);
+                } else {
+                    showError(results, translateError(data.error));
+                }
+            } catch (error) {
+                showError(results, t('search-failed'));
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+        
+        // 地区查询
+        document.getElementById('locationSearchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const position = document.getElementById('locationPosition').value;
+            const targetLevel = parseInt(document.getElementById('targetLevel').value);
+            const targetSalary = parseFloat(document.getElementById('targetSalary').value);
+            const state = document.getElementById('locationState').value;
+            const loading = document.getElementById('locationLoading');
+            const results = document.getElementById('locationResults');
+            
+            if (!position || !targetLevel || !targetSalary) {
+                showError(results, t('please-enter-location'));
+                return;
+            }
+            
+            loading.style.display = 'block';
+            results.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/search/location', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        position: position,
+                        target_level: targetLevel,
+                        target_salary: targetSalary,
+                        state: state
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayLocationResults(data.results, results);
+                } else {
+                    showError(results, translateError(data.error));
+                }
+            } catch (error) {
+                showError(results, t('search-failed'));
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+        
+        function displayForwardResults(results, container) {
+            if (results.length === 0) {
+                showError(container, t('no-results'));
+                return;
+            }
+            
+            let html = `<div class="success-message">${t('found-results', {count: results.length})}</div>`;
+            
+            results.forEach(result => {
+                html += `
+                    <div class="card result-card">
+                        <div class="card-body">
+                            <h5 class="card-title">${result.occupation}</h5>
+                            <p class="card-text">
+                                <strong>${t('job-code')}:</strong> ${result.soc_code}<br>
+                                <strong>${t('location')}:</strong> ${result.location}<br>
+                                <strong>${t('county')}:</strong> ${result.county}
+                            </p>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 1: $${result.level1 ? result.level1.toLocaleString() : 'N/A'}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 2: $${result.level2 ? result.level2.toLocaleString() : 'N/A'}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 3: $${result.level3 ? result.level3.toLocaleString() : 'N/A'}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 4: $${result.level4 ? result.level4.toLocaleString() : 'N/A'}</div>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">${result.label || ''}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function displayReverseResults(results, container) {
+            if (results.length === 0) {
+                showError(container, t('no-results'));
+                return;
+            }
+            
+            let html = `<div class="success-message">${t('found-results', {count: results.length})}</div>`;
+            
+            results.forEach(result => {
+                const matchingLevels = result.matching_levels.map(level => 
+                    `Level ${level.level}: $${level.salary.toLocaleString()}`
+                ).join(', ');
+                
+                html += `
+                    <div class="card result-card">
+                        <div class="card-body">
+                            <h5 class="card-title">${result.occupation}</h5>
+                            <p class="card-text">
+                                <strong>${t('job-code')}:</strong> ${result.soc_code}<br>
+                                <strong>${t('location')}:</strong> ${result.location}<br>
+                                <strong>${t('county')}:</strong> ${result.county}<br>
+                                <strong>${t('matching-levels')}:</strong> ${matchingLevels}
+                            </p>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 1: $${result.level1 ? result.level1.toLocaleString() : 'N/A'}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 2: $${result.level2 ? result.level2.toLocaleString() : 'N/A'}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 3: $${result.level3 ? result.level3.toLocaleString() : 'N/A'}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 4: $${result.level4 ? result.level4.toLocaleString() : 'N/A'}</div>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">${result.label || ''}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function displayLocationResults(results, container) {
+            if (results.length === 0) {
+                showError(container, t('no-results'));
+                return;
+            }
+            
+            let html = `<div class="success-message">${t('found-locations', {count: results.length})}</div>`;
+            
+            results.forEach(result => {
+                html += `
+                    <div class="card result-card">
+                        <div class="card-body">
+                            <h5 class="card-title">${result.occupation}</h5>
+                            <p class="card-text">
+                                <strong>${t('job-code')}:</strong> ${result.soc_code}<br>
+                                <strong>${t('location')}:</strong> ${result.location}<br>
+                                <strong>${t('county')}:</strong> ${result.county}<br>
+                                <strong>${t('level-annual-salary', {level: result.target_level})}:</strong> $${result.target_level_salary.toLocaleString()}
+                            </p>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 1: $${result.level1 ? result.level1.toLocaleString() : 'N/A'}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 2: $${result.level2 ? result.level2.toLocaleString() : 'N/A'}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 3: $${result.level3 ? result.level3.toLocaleString() : 'N/A'}</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="salary-level">Level 4: $${result.level4 ? result.level4.toLocaleString() : 'N/A'}</div>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">${result.label || ''}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function showError(container, message) {
+            container.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+    </script>
+</body>
+</html>
