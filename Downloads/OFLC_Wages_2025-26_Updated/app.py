@@ -13,25 +13,39 @@ DB_PATH = 'wage_data.db'
 def init_database():
     """初始化数据库并导入数据"""
     if os.path.exists(DB_PATH):
+        print("数据库已存在，跳过初始化")
         return
     
+    print("开始初始化数据库...")
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
     # 读取CSV文件
     print("正在读取数据文件...")
     
-    # 读取主要薪资数据
-    alc_data = pd.read_csv('ALC_Export.csv')
-    alc_data.columns = ['area', 'soc_code', 'geo_lvl', 'level1', 'level2', 'level3', 'level4', 'average', 'label']
-    
-    # 读取地理信息
-    geo_data = pd.read_csv('Geography.csv')
-    geo_data.columns = ['area', 'area_name', 'state_ab', 'state', 'county_town_name']
-    
-    # 读取职业信息
-    occ_data = pd.read_csv('oes_soc_occs.csv')
-    occ_data.columns = ['soc_code', 'title', 'description']
+    try:
+        # 读取主要薪资数据
+        print("读取ALC_Export.csv...")
+        alc_data = pd.read_csv('ALC_Export.csv')
+        alc_data.columns = ['area', 'soc_code', 'geo_lvl', 'level1', 'level2', 'level3', 'level4', 'average', 'label']
+        print(f"ALC数据行数: {len(alc_data)}")
+        
+        # 读取地理信息
+        print("读取Geography.csv...")
+        geo_data = pd.read_csv('Geography.csv')
+        geo_data.columns = ['area', 'area_name', 'state_ab', 'state', 'county_town_name']
+        print(f"地理数据行数: {len(geo_data)}")
+        
+        # 读取职业信息
+        print("读取oes_soc_occs.csv...")
+        occ_data = pd.read_csv('oes_soc_occs.csv')
+        occ_data.columns = ['soc_code', 'title', 'description']
+        print(f"职业数据行数: {len(occ_data)}")
+        
+    except Exception as e:
+        print(f"读取CSV文件时出错: {e}")
+        conn.close()
+        return
     
     # 创建表
     cursor.execute('''
@@ -450,9 +464,60 @@ def search_counties():
     
     return jsonify({'counties': [{'county': county[0]} for county in counties]})
 
+@app.route('/api/init-db', methods=['POST'])
+def force_init_db():
+    """强制重新初始化数据库"""
+    try:
+        # 删除现有数据库
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+            print("已删除现有数据库")
+        
+        # 重新初始化
+        init_database()
+        
+        # 检查数据
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM wage_data")
+        wage_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM geography")
+        geo_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM occupations")
+        occ_count = cursor.fetchone()[0]
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': '数据库重新初始化成功',
+            'data_counts': {
+                'wage_data': wage_count,
+                'geography': geo_count,
+                'occupations': occ_count
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
     # 初始化数据库
     init_database()
+    
+    # 检查数据库是否为空
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM wage_data")
+    wage_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM geography")
+    geo_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM occupations")
+    occ_count = cursor.fetchone()[0]
+    conn.close()
+    
+    print(f"数据库状态 - 薪资数据: {wage_count}, 地理数据: {geo_count}, 职业数据: {occ_count}")
     
     # 生产环境配置
     port = int(os.environ.get('PORT', 8080))
