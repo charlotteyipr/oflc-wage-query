@@ -187,7 +187,7 @@ def debug():
         <ul>
         {''.join([f'<li>{occ[0]}</li>' for occ in sample_occupations])}
         </ul>
-        <p><a href="/api/init-db" onclick="fetch('/api/init-db', {method: 'POST'}).then(r => r.json()).then(d => alert(JSON.stringify(d))); return false;">强制重新初始化数据库</a></p>
+        <p><a href="/init-db-simple">强制重新初始化数据库</a></p>
         <p><a href="/">返回主页</a></p>
         """
     except Exception as e:
