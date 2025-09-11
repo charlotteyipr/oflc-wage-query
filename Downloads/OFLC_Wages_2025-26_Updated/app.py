@@ -24,6 +24,16 @@ def init_database():
     print("正在读取数据文件...")
     
     try:
+        # 检查CSV文件是否存在
+        csv_files = ['ALC_Export.csv', 'Geography.csv', 'oes_soc_occs.csv']
+        for file in csv_files:
+            if not os.path.exists(file):
+                print(f"错误：文件 {file} 不存在")
+                conn.close()
+                return
+            else:
+                print(f"文件 {file} 存在")
+        
         # 读取主要薪资数据
         print("读取ALC_Export.csv...")
         alc_data = pd.read_csv('ALC_Export.csv')
@@ -44,6 +54,8 @@ def init_database():
         
     except Exception as e:
         print(f"读取CSV文件时出错: {e}")
+        print(f"当前工作目录: {os.getcwd()}")
+        print(f"目录中的文件: {os.listdir('.')}")
         conn.close()
         return
     
@@ -113,8 +125,41 @@ def index():
 def debug():
     """调试页面，显示数据库状态"""
     try:
+        # 检查数据库文件是否存在
+        if not os.path.exists(DB_PATH):
+            return f"""
+            <h1>数据库调试信息</h1>
+            <p style="color: red;">数据库文件不存在: {DB_PATH}</p>
+            <p>当前工作目录: {os.getcwd()}</p>
+            <p>目录中的文件: {', '.join(os.listdir('.'))}</p>
+            <p><a href="/api/init-db" onclick="fetch('/api/init-db', {method: 'POST'}).then(r => r.json()).then(d => alert(JSON.stringify(d))); return false;">强制重新初始化数据库</a></p>
+            <p><a href="/">返回主页</a></p>
+            """
+        
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
+        
+        # 检查表是否存在
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = cursor.fetchall()
+        table_names = [table[0] for table in tables]
+        
+        if 'wage_data' not in table_names:
+            return f"""
+            <h1>数据库调试信息</h1>
+            <p style="color: red;">数据库表不存在</p>
+            <p>数据库文件: {DB_PATH}</p>
+            <p>现有表: {', '.join(table_names) if table_names else '无'}</p>
+            <p>当前工作目录: {os.getcwd()}</p>
+            <p>CSV文件检查:</p>
+            <ul>
+            <li>ALC_Export.csv: {'存在' if os.path.exists('ALC_Export.csv') else '不存在'}</li>
+            <li>Geography.csv: {'存在' if os.path.exists('Geography.csv') else '不存在'}</li>
+            <li>oes_soc_occs.csv: {'存在' if os.path.exists('oes_soc_occs.csv') else '不存在'}</li>
+            </ul>
+            <p><a href="/api/init-db" onclick="fetch('/api/init-db', {method: 'POST'}).then(r => r.json()).then(d => alert(JSON.stringify(d))); return false;">强制重新初始化数据库</a></p>
+            <p><a href="/">返回主页</a></p>
+            """
         
         # 检查各表的数据量
         cursor.execute("SELECT COUNT(*) FROM wage_data")
@@ -132,6 +177,7 @@ def debug():
         
         return f"""
         <h1>数据库调试信息</h1>
+        <p>数据库文件: {DB_PATH}</p>
         <p>薪资数据行数: {wage_count}</p>
         <p>地理数据行数: {geo_count}</p>
         <p>职业数据行数: {occ_count}</p>
@@ -143,7 +189,13 @@ def debug():
         <p><a href="/">返回主页</a></p>
         """
     except Exception as e:
-        return f"<h1>数据库错误</h1><p>错误信息: {str(e)}</p><p><a href='/'>返回主页</a></p>"
+        return f"""
+        <h1>数据库错误</h1>
+        <p>错误信息: {str(e)}</p>
+        <p>当前工作目录: {os.getcwd()}</p>
+        <p>目录中的文件: {', '.join(os.listdir('.'))}</p>
+        <p><a href='/'>返回主页</a></p>
+        """
 
 @app.route('/api/search/forward', methods=['POST'])
 def forward_search():
