@@ -116,6 +116,18 @@ def init_database():
     conn.close()
     print("数据库初始化完成！")
 
+# 重要：确保在生产环境（如 gunicorn/Railway）导入时也会初始化数据库
+# 由于在 gunicorn 下不会执行 `if __name__ == '__main__':`，
+# 因此这里进行一次幂等初始化（函数内部已判断文件存在则跳过）。
+try:
+    if not os.path.exists(DB_PATH):
+        print("检测到数据库文件不存在，正在进行导入初始化…")
+    else:
+        print("检测到数据库文件已存在，按需跳过初始化…")
+    init_database()
+except Exception as _e:
+    print(f"应用导入阶段初始化数据库失败: {_e}")
+
 @app.route('/')
 def index():
     """主页"""
