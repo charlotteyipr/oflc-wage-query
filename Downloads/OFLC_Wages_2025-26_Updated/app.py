@@ -128,6 +128,39 @@ try:
 except Exception as _e:
     print(f"应用导入阶段初始化数据库失败: {_e}")
 
+
+@app.route('/health')
+def health():
+    """健康检查：数据库是否就绪。就绪返回200，否则503。"""
+    try:
+        if not os.path.exists(DB_PATH):
+            return jsonify({
+                'ready': False,
+                'reason': 'db_file_missing'
+            }), 503
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        # 确认三张表存在
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = {row[0] for row in cursor.fetchall()}
+        required = {'wage_data', 'geography', 'occupations'}
+        if not required.issubset(tables):
+            conn.close()
+            return jsonify({'ready': False, 'reason': 'tables_missing', 'tables': list(tables)}), 503
+        # 行数>0视为就绪
+        cursor.execute("SELECT COUNT(*) FROM wage_data")
+        w = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM geography")
+        g = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM occupations")
+        o = cursor.fetchone()[0]
+        conn.close()
+        ready = (w > 0 and g > 0 and o > 0)
+        return (jsonify({'ready': ready, 'counts': {'wage_data': w, 'geography': g, 'occupations': o}}), 200) if ready else \
+               (jsonify({'ready': False, 'counts': {'wage_data': w, 'geography': g, 'occupations': o}}), 503)
+    except Exception as e:
+        return jsonify({'ready': False, 'error': str(e)}), 503
+
 @app.route('/')
 def index():
     """主页"""
