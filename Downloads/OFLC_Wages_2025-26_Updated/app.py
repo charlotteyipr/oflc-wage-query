@@ -109,6 +109,42 @@ def index():
     """主页"""
     return render_template('index.html')
 
+@app.route('/debug')
+def debug():
+    """调试页面，显示数据库状态"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # 检查各表的数据量
+        cursor.execute("SELECT COUNT(*) FROM wage_data")
+        wage_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM geography")
+        geo_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM occupations")
+        occ_count = cursor.fetchone()[0]
+        
+        # 检查一些样本数据
+        cursor.execute("SELECT title FROM occupations LIMIT 5")
+        sample_occupations = cursor.fetchall()
+        
+        conn.close()
+        
+        return f"""
+        <h1>数据库调试信息</h1>
+        <p>薪资数据行数: {wage_count}</p>
+        <p>地理数据行数: {geo_count}</p>
+        <p>职业数据行数: {occ_count}</p>
+        <h3>样本职业数据:</h3>
+        <ul>
+        {''.join([f'<li>{occ[0]}</li>' for occ in sample_occupations])}
+        </ul>
+        <p><a href="/api/init-db" onclick="fetch('/api/init-db', {method: 'POST'}).then(r => r.json()).then(d => alert(JSON.stringify(d))); return false;">强制重新初始化数据库</a></p>
+        <p><a href="/">返回主页</a></p>
+        """
+    except Exception as e:
+        return f"<h1>数据库错误</h1><p>错误信息: {str(e)}</p><p><a href='/'>返回主页</a></p>"
+
 @app.route('/api/search/forward', methods=['POST'])
 def forward_search():
     """正向查询：职位名称+地区 → Level 1-4薪资"""
