@@ -190,6 +190,10 @@
 
     <!-- 主要内容 -->
     <div class="container my-5">
+        <div id="init-banner" class="alert alert-warning" role="alert" style="display:none">
+            <i class="fas fa-hourglass-half me-2"></i>
+            <span id="init-banner-text">System is initializing data, please wait...</span>
+        </div>
         <!-- 标签页导航 -->
         <div class="tab-navigation">
             <button class="tab-button" id="tab-job-title" onclick="switchTab('job-title')">
@@ -452,6 +456,7 @@
             
             // 更新页脚
             document.getElementById('footer-text').textContent = texts['footer-text'];
+            document.getElementById('init-banner-text').textContent = currentLanguage === 'en' ? 'System is initializing data, please wait...' : '系统正在初始化数据，请稍候...';
             
             // 更新标签页按钮
             document.getElementById('tab-job-title').textContent = texts['tab-job-title'];
@@ -608,6 +613,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             // 初始化语言设置
             updateLanguage();
+            // 健康检查，未就绪则禁用交互
+            checkHealthAndGate();
             
             // 职位搜索
             setupAutocomplete('forwardPosition', 'forwardPositionDropdown', '/api/search/occupations', 'title', 'soc_code');
@@ -622,6 +629,46 @@
             setupAutocomplete('forwardCounty', 'forwardCountyDropdown', '/api/search/counties', 'county', 'county');
             setupAutocomplete('reverseCounty', 'reverseCountyDropdown', '/api/search/counties', 'county', 'county');
         });
+
+        async function checkHealthAndGate() {
+            const banner = document.getElementById('init-banner');
+            const disableSelectors = ['input', 'select', 'button'];
+            const setDisabled = (flag) => {
+                disableSelectors.forEach(sel => {
+                    document.querySelectorAll(sel).forEach(el => {
+                        if (el.id === 'languageDropdown') return;
+                        el.disabled = flag;
+                    });
+                });
+            };
+            try {
+                const res = await fetch('/health');
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ready) {
+                    banner.style.display = 'block';
+                    setDisabled(true);
+                    // 轮询直到就绪
+                    const timer = setInterval(async () => {
+                        try {
+                            const r = await fetch('/health');
+                            const d = await r.json().catch(() => ({}));
+                            if (r.ok && d.ready) {
+                                clearInterval(timer);
+                                banner.style.display = 'none';
+                                setDisabled(false);
+                            }
+                        } catch (_) {}
+                    }, 5000);
+                } else {
+                    banner.style.display = 'none';
+                    setDisabled(false);
+                }
+            } catch (e) {
+                // 网络异常时，允许操作但显示提示
+                banner.style.display = 'block';
+                setDisabled(false);
+            }
+        }
         // 正向查询
         document.getElementById('forwardSearchForm').addEventListener('submit', async function(e) {
             e.preventDefault();
