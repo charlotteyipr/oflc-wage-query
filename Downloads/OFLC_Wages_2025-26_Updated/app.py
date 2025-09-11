@@ -132,7 +132,8 @@ def debug():
             <p style="color: red;">数据库文件不存在: {DB_PATH}</p>
             <p>当前工作目录: {os.getcwd()}</p>
             <p>目录中的文件: {', '.join(os.listdir('.'))}</p>
-            <p><a href="/api/init-db" onclick="fetch('/api/init-db', {method: 'POST'}).then(r => r.json()).then(d => alert(JSON.stringify(d))); return false;">强制重新初始化数据库</a></p>
+            <p><a href="/api/init-db" target="_blank">强制重新初始化数据库 (新窗口)</a></p>
+            <p><a href="/init-db-simple">简单重新初始化数据库</a></p>
             <p><a href="/">返回主页</a></p>
             """
         
@@ -157,7 +158,8 @@ def debug():
             <li>Geography.csv: {'存在' if os.path.exists('Geography.csv') else '不存在'}</li>
             <li>oes_soc_occs.csv: {'存在' if os.path.exists('oes_soc_occs.csv') else '不存在'}</li>
             </ul>
-            <p><a href="/api/init-db" onclick="fetch('/api/init-db', {method: 'POST'}).then(r => r.json()).then(d => alert(JSON.stringify(d))); return false;">强制重新初始化数据库</a></p>
+            <p><a href="/api/init-db" target="_blank">强制重新初始化数据库 (新窗口)</a></p>
+            <p><a href="/init-db-simple">简单重新初始化数据库</a></p>
             <p><a href="/">返回主页</a></p>
             """
         
@@ -589,6 +591,46 @@ def force_init_db():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/init-db-simple')
+def init_db_simple():
+    """简单的数据库重新初始化页面"""
+    try:
+        # 删除现有数据库
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+            print("已删除现有数据库")
+        
+        # 重新初始化
+        init_database()
+        
+        # 检查数据
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM wage_data")
+        wage_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM geography")
+        geo_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM occupations")
+        occ_count = cursor.fetchone()[0]
+        conn.close()
+        
+        return f"""
+        <h1>数据库重新初始化完成</h1>
+        <p style="color: green;">✅ 数据库重新初始化成功！</p>
+        <p>薪资数据行数: {wage_count}</p>
+        <p>地理数据行数: {geo_count}</p>
+        <p>职业数据行数: {occ_count}</p>
+        <p><a href="/debug">查看详细调试信息</a></p>
+        <p><a href="/">返回主页测试搜索功能</a></p>
+        """
+    except Exception as e:
+        return f"""
+        <h1>数据库重新初始化失败</h1>
+        <p style="color: red;">❌ 错误: {str(e)}</p>
+        <p><a href="/debug">返回调试页面</a></p>
+        <p><a href="/">返回主页</a></p>
+        """
 
 if __name__ == '__main__':
     # 初始化数据库
